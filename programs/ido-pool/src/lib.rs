@@ -17,8 +17,12 @@ pub mod ido_pool {
         start_ido_ts: i64,
         end_deposits_ts: i64,
         end_ido_ts: i64,
+        withdraw_melon_ts: i64,
     ) -> Result<()> {
-        if !(start_ido_ts < end_deposits_ts && end_deposits_ts < end_ido_ts) {
+        if !(start_ido_ts < end_deposits_ts
+            && end_deposits_ts < end_ido_ts
+            && end_ido_ts < withdraw_melon_ts)
+        {
             return Err(ErrorCode::SeqTimes.into());
         }
 
@@ -33,6 +37,7 @@ pub mod ido_pool {
         pool_account.start_ido_ts = start_ido_ts;
         pool_account.end_deposits_ts = end_deposits_ts;
         pool_account.end_ido_ts = end_ido_ts;
+        pool_account.withdraw_melon_ts = withdraw_melon_ts;
 
         // Transfer Watermelon from creator to pool account.
         let cpi_accounts = Transfer {
@@ -330,6 +335,7 @@ pub struct PoolAccount {
     pub start_ido_ts: i64,
     pub end_deposits_ts: i64,
     pub end_ido_ts: i64,
+    pub withdraw_melon_ts: i64,
 }
 
 #[error]
@@ -391,7 +397,7 @@ fn ido_over<'info>(
     pool_account: &ProgramAccount<'info, PoolAccount>,
     clock: &Sysvar<'info, Clock>,
 ) -> Result<()> {
-    if !(pool_account.end_ido_ts < clock.unix_timestamp) {
+    if !(pool_account.withdraw_melon_ts < clock.unix_timestamp) {
         return Err(ErrorCode::IdoNotOver.into());
     }
     Ok(())
