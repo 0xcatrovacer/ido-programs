@@ -334,26 +334,26 @@ pub struct PoolAccount {
 
 #[error]
 pub enum ErrorCode {
-    #[msg("IDO must start in the future")]
-    IdoFuture,
+    #[msg("IDO must start in the future")] 
+    IdoFuture,//300, 0x12c
     #[msg("IDO times are non-sequential")]
-    SeqTimes,
+    SeqTimes,//301, 0x12d
     #[msg("IDO has not started")]
-    StartIdoTime,
+    StartIdoTime,//302, 0x12e
     #[msg("Deposits period has ended")]
-    EndDepositsTime,
+    EndDepositsTime, //303, 0x12f
     #[msg("IDO has ended")]
-    EndIdoTime,
+    EndIdoTime,//304, 0x130
     #[msg("IDO has not finished yet")]
-    IdoNotOver,
+    IdoNotOver,//304, 0x131
     #[msg("Insufficient USDC")]
-    LowUsdc,
+    LowUsdc,//305, 0x132
     #[msg("Insufficient redeemable tokens")]
-    LowRedeemable,
+    LowRedeemable,//306, 0x133
     #[msg("USDC total and redeemable total don't match")]
-    UsdcNotEqRedeem,
+    UsdcNotEqRedeem,//307, 0x134
     #[msg("Given nonce is invalid")]
-    InvalidNonce,
+    InvalidNonce,//308, 0x135
 }
 
 // Access control modifiers.

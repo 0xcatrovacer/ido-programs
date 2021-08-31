@@ -205,7 +205,7 @@ yargs(hideBin(process.argv))
   .command(
     'bid <pool_account> <usdc_account> <usdc_amount> <redeemable_account>',
     'place bid in IDO sale',
-     y => y
+    y => y
       .positional('pool_account', pool_account)
       .positional('usdc_account', { describe: 'the account supplying the token sale bids 💵', type: 'string' })
       .positional('usdc_amount', { describe: 'the amount of tokens bid for this sale 💵', type: 'number' })
@@ -218,4 +218,25 @@ yargs(hideBin(process.argv))
         new anchor.web3.PublicKey(args.redeemable_account)
       );
     })
+  .command(
+    'inspect <pool_account>',
+    'inspect pool config',
+    y => y.positional('pool_account', pool_account),
+    async args => {
+      const account = await program.account.poolAccount.fetch(new anchor.web3.PublicKey(args.pool_account));
+
+      for (const key in account) {
+        const v = account[key];
+        if (v.toBase58) {
+          console.log(key.padStart(22, ' '), v.toBase58());
+        } else if (v.toNumber) {
+          console.log(key.padStart(22, ' '), v.toString(), key.endsWith('Ts') ? new Date(v.toNumber() * 1000) : '');
+        } else {
+          console.log(key.padStart(22, ' '), v);
+        }
+      }
+      const now = new Date();
+      console.log('now'.padStart(22, ' '), ''.padStart(10, ' '), now);
+    }
+  )
   .argv;

@@ -24,8 +24,8 @@ describe("ido-pool", () => {
   // are available to the client.
   let usdcMint = null;
   let watermelonMint = null;
-  let creatorUsdc = null;
-  let creatorWatermelon = null;
+  let creatorUsdc = null; //token account
+  let creatorWatermelon = null; //token account
 
   it("Initializes the state-of-the-world", async () => {
     usdcMint = await createMint(provider);
@@ -57,11 +57,11 @@ describe("ido-pool", () => {
 
   // These are all variables the client will have to create to initialize the
   // IDO pool
-  let poolSigner = null;
-  let redeemableMint = null;
-  let poolWatermelon = null;
-  let poolUsdc = null;
-  let poolAccount = null;
+  let poolSigner = null; //pda of(watermelon mint)
+  let redeemableMint = null; //owner: poolSigner
+  let poolWatermelon = null; //owner: poolSigner
+  let poolUsdc = null; //owner: poolSigner
+  let poolAccount = null; //generated keypair
 
   let startIdoTs = null;
   let endDepositsTs = null;
@@ -129,8 +129,8 @@ describe("ido-pool", () => {
   // We're going to need to start using the associated program account for creating token accounts
   // if not in testing, then definitely in production.
 
-  let userUsdc = null;
-  let userRedeemable = null;
+  let userUsdc = null; //token account
+  let userRedeemable = null; //token account
   // 10 usdc
   const firstDeposit = new anchor.BN(10_000_349);
 

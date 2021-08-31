@@ -1,3 +1,6 @@
 [provider]
-cluster = "mainnet"
-wallet = "~/.config/solana/bwf.json"
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "mocha -t 20000 tests/ido-pool.js"
