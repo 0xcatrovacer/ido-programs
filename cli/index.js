@@ -18,7 +18,7 @@ const TOKEN_PROGRAM_ID = new anchor.web3.PublicKey(
 
 async function initPool(
   usdcMint, watermelonMint, creatorWatermelon, watermelonIdoAmount,
-  startIdoTs, endDepositsTs, endIdoTs) {
+  startIdoTs, endDepositsTs, endIdoTs, withdrawTs) {
 
   // We use the watermelon mint address as the seed, could use something else though.
   const [_poolSigner, nonce] = await anchor.web3.PublicKey.findProgramAddress(
@@ -39,7 +39,7 @@ async function initPool(
   distributionAuthority = provider.wallet.publicKey;
 
 
-  console.log('initializePool', watermelonIdoAmount.toString(), nonce, startIdoTs.toString(), endDepositsTs.toString(), endIdoTs.toString())
+  console.log('initializePool', watermelonIdoAmount.toString(), nonce, startIdoTs.toString(), endDepositsTs.toString(), endIdoTs.toString(), withdrawTs.toString());
   // Atomically create the new account and initialize it with the program.
   await program.rpc.initializePool(
     watermelonIdoAmount,
@@ -47,6 +47,7 @@ async function initPool(
     startIdoTs,
     endDepositsTs,
     endIdoTs,
+    withdrawTs,
     {
       accounts: {
         poolAccount: poolAccount.publicKey,
@@ -175,6 +176,12 @@ const cancel_duration = {
   type: 'number'
 }
 
+const withdraw_duration = {
+  describe: 'the number of seconds users can withdraw watermelon from pool after ido over',
+  default: 60 * 60 *24,
+  type: 'number'
+}
+
 
 yargs(hideBin(process.argv))
   .command(
@@ -187,11 +194,13 @@ yargs(hideBin(process.argv))
       .positional('watermelon_amount', { describe: 'the amount of tokens offered in this sale 🍉', type: 'number' })
       .option('start_time', start_time)
       .option('deposit_duration', deposit_duration)
-      .option('cancel_duration', cancel_duration),
+      .option('cancel_duration', cancel_duration)
+      .option('withdraw_duration', withdraw_duration),
     args => {
       const start = new anchor.BN(args.start_time);
       const endDeposits = new anchor.BN(args.deposit_duration).add(start);
       const endIdo = new anchor.BN(args.cancel_duration).add(endDeposits);
+      const withdrawTs = new anchor.BN(args.withdraw_duration).add(endIdo);
       initPool(
         new anchor.web3.PublicKey(args.usdc_mint),
         new anchor.web3.PublicKey(args.watermelon_mint),
@@ -199,7 +208,8 @@ yargs(hideBin(process.argv))
         new anchor.BN(args.watermelon_amount * 1000000), // assuming 6 decimals
         start,
         endDeposits,
-        endIdo
+        endIdo,
+        withdrawTs
       );
     })
   .command(

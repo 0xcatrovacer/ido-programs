@@ -34,7 +34,7 @@ spl-token mint $MINT_USDC 1000 $ACC_USDC
 
 ```
 anchor launch
-node cli/index.js init $MINT_USDC $MINT_MELON $ACC_MELON 10 --deposit_duration 300 --cancel_duration 60
+node cli/index.js init $MINT_USDC $MINT_MELON $ACC_MELON 10 --deposit_duration 300 --cancel_duration 60 --withdraw_duration 180
 ```
 
 4. Bid 100 💵 tokens. But first create an account to receive the redeemable pool token, that will allow you to receive 🍉 tokens in phase 3. You can increase or reduce your bid, by calling bid again.

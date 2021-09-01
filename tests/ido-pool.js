@@ -90,6 +90,7 @@ describe("ido-pool", () => {
     startIdoTs = nowBn.add(new anchor.BN(5));
     endDepositsTs = nowBn.add(new anchor.BN(10));
     endIdoTs = nowBn.add(new anchor.BN(15));
+    withdrawTs = nowBn.add(new anchor.BN(19));
 
     // Atomically create the new account and initialize it with the program.
     await program.rpc.initializePool(
@@ -98,6 +99,7 @@ describe("ido-pool", () => {
       startIdoTs,
       endDepositsTs,
       endIdoTs,
+      withdrawTs,
       {
         accounts: {
           poolAccount: poolAccount.publicKey,
@@ -254,8 +256,8 @@ describe("ido-pool", () => {
 
   it("Exchanges user Redeemable tokens for watermelon", async () => {
     // Wait until the IDO has opened.
-    if (Date.now() < endIdoTs.toNumber() * 1000) {
-      await sleep(endIdoTs.toNumber() * 1000 - Date.now() + 2000);
+    if (Date.now() < withdrawTs.toNumber() * 1000) {
+      await sleep(withdrawTs.toNumber() * 1000 - Date.now() + 2000);
     }
     let firstUserRedeemable = firstDeposit.sub(firstWithdrawal);
     userWatermelon = await createTokenAccount(
