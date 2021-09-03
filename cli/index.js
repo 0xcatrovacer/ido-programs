@@ -160,7 +160,7 @@ const pool_account = {
 
 const start_time = {
   describe: 'the unix time at which the token sale is starting',
-  default: 10 + (Date.now() / 1000),
+  default: 60 + (Date.now() / 1000),
   type: 'number'
 }
 
@@ -176,9 +176,9 @@ const cancel_duration = {
   type: 'number'
 }
 
-const withdraw_duration = {
-  describe: 'the number of seconds users can withdraw watermelon from pool after ido over',
-  default: 60 * 60 *24,
+const withdraw_ts = {
+  describe: 'the timestamp users can withdraw watermelon from pool after ido over',
+  default: new Date().setDate(new Date().getDate() + 3) / 1000,
   type: 'number'
 }
 
@@ -195,12 +195,13 @@ yargs(hideBin(process.argv))
       .option('start_time', start_time)
       .option('deposit_duration', deposit_duration)
       .option('cancel_duration', cancel_duration)
-      .option('withdraw_duration', withdraw_duration),
+      .option('withdraw_ts', withdraw_ts),
     args => {
       const start = new anchor.BN(args.start_time);
       const endDeposits = new anchor.BN(args.deposit_duration).add(start);
       const endIdo = new anchor.BN(args.cancel_duration).add(endDeposits);
-      const withdrawTs = new anchor.BN(args.withdraw_duration).add(endIdo);
+      const withdrawTs = new anchor.BN(args.withdraw_ts);
+      console.log('args: ', args);
       initPool(
         new anchor.web3.PublicKey(args.usdc_mint),
         new anchor.web3.PublicKey(args.watermelon_mint),
