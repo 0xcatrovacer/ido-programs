@@ -3,6 +3,9 @@ const serum = require("@project-serum/common");
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers')
 const { TokenInstructions } = require("@project-serum/serum");
+const {
+  getAssociatedTokenAddress
+} = require('@project-serum/associated-token');
 
 const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
 // Configure the client to use the local cluster.
@@ -133,6 +136,38 @@ async function bid(poolAccount, userUsdc, bidAmount, userRedeemable) {
   }
 }
 
+async function withdrawUsdc(poolAccount) {
+  const pool = await program.account.poolAccount.fetch(poolAccount);
+  const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
+  const associatedUsdc = await getAssociatedTokenAddress(
+    provider.wallet.publicKey,
+    poolUsdc.mint,
+  );
+  console.log('associatedUsdc: ', associatedUsdc.toBase58());
+  const ixs = [];
+  try {
+    await serum.getTokenAccount(provider, associatedUsdc);
+  } catch (e) { //associated usdc token account not found
+    // ixs.push(await createAssociatedTokenAccount(
+    //   provider.wallet.publicKey, provider.wallet.publicKey, poolUsdc.mint
+    // ))
+  }
+
+  const txid = await program.rpc.withdrawPoolUsdc({
+    accounts: {
+      poolAccount: poolAccount,
+      poolSigner: poolUsdc.owner, //PDA
+      poolUsdc: pool.poolUsdc,
+      distributionAuthority: provider.wallet.publicKey,
+      creatorUsdc: associatedUsdc,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+    },
+    // instructions: ixs,
+  });
+  console.log('txid: ', txid);
+}
+
 const usdc_mint = {
   describe: 'the mint of the token sale bids 💵',
   type: 'string'
@@ -196,17 +231,20 @@ yargs(hideBin(process.argv))
       .option('deposit_duration', deposit_duration)
       .option('cancel_duration', cancel_duration)
       .option('withdraw_ts', withdraw_ts),
-    args => {
+    async args => {
       const start = new anchor.BN(args.start_time);
       const endDeposits = new anchor.BN(args.deposit_duration).add(start);
       const endIdo = new anchor.BN(args.cancel_duration).add(endDeposits);
       const withdrawTs = new anchor.BN(args.withdraw_ts);
       console.log('args: ', args);
+
+      const mintInfo = await serum.getMintInfo(provider, new anchor.web3.PublicKey(args.watermelon_mint));
+
       initPool(
         new anchor.web3.PublicKey(args.usdc_mint),
         new anchor.web3.PublicKey(args.watermelon_mint),
         new anchor.web3.PublicKey(args.watermelon_account),
-        new anchor.BN(args.watermelon_amount * 1000000), // assuming 6 decimals
+        new anchor.BN(args.watermelon_amount * (10 ** mintInfo.decimals)),
         start,
         endDeposits,
         endIdo,
@@ -222,6 +260,7 @@ yargs(hideBin(process.argv))
       .positional('usdc_amount', { describe: 'the amount of tokens bid for this sale 💵', type: 'number' })
       .positional('redeemable_account', { describe: 'the account receiving the redeemable pool token', type: 'string' }),
     args => {
+      throw new Error('decimal should be processed');
       bid(
         new anchor.web3.PublicKey(args.pool_account),
         new anchor.web3.PublicKey(args.usdc_account),
@@ -248,6 +287,14 @@ yargs(hideBin(process.argv))
       }
       const now = new Date();
       console.log('now'.padStart(22, ' '), ''.padStart(10, ' '), now);
+    }
+  )
+  .command(
+    'withdraw-usdc <pool_account>',
+    'withdraw usdc',
+    y => y.positional('pool_account', pool_account),
+    async args => {
+      await withdrawUsdc(new anchor.web3.PublicKey(args.pool_account));
     }
   )
   .argv;
