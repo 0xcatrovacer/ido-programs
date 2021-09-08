@@ -43,7 +43,7 @@ pub mod ido_pool {
         let cpi_accounts = Transfer {
             from: ctx.accounts.creator_watermelon.to_account_info(),
             to: ctx.accounts.pool_watermelon.to_account_info(),
-            authority: ctx.accounts.distribution_authority.to_account_info(),
+            authority: ctx.accounts.payer.to_account_info(),
         };
         let cpi_program = ctx.accounts.token_program.clone();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
@@ -212,7 +212,9 @@ pub struct InitializePool<'info> {
     pub pool_usdc: CpiAccount<'info, TokenAccount>,
     #[account()]
     pub distribution_authority: AccountInfo<'info>,
-    #[account(mut, constraint = creator_watermelon.owner == *distribution_authority.key)]
+    #[account(signer)]
+    pub payer: AccountInfo<'info>,
+    #[account(mut)]
     pub creator_watermelon: CpiAccount<'info, TokenAccount>,
     #[account(constraint = token_program.key == &token::ID)]
     pub token_program: AccountInfo<'info>,

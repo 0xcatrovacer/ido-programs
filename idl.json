@@ -38,6 +38,11 @@
         {
           "name": "distributionAuthority",
           "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "payer",
+          "isMut": false,
           "isSigner": true
         },
         {
@@ -295,7 +300,12 @@
           "isSigner": false
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [

@@ -27,7 +27,7 @@ const TOKEN_PROGRAM_ID = new anchor.web3.PublicKey(
 
 async function initPool(
   usdcMint, watermelonMint, creatorWatermelon, watermelonIdoAmount,
-  startIdoTs, endDepositsTs, endIdoTs, withdrawTs) {
+  startIdoTs, endDepositsTs, endIdoTs, withdrawTs, distributionAuthority) {
 
   // We use the watermelon mint address as the seed, could use something else though.
   const [_poolSigner, nonce] = await anchor.web3.PublicKey.findProgramAddress(
@@ -45,7 +45,6 @@ async function initPool(
   poolWatermelon = await serum.createTokenAccount(provider, watermelonMint, poolSigner);
   poolUsdc = await serum.createTokenAccount(provider, usdcMint, poolSigner);
   poolAccount = new anchor.web3.Account();
-  distributionAuthority = provider.wallet.publicKey;
 
 
   console.log('initializePool', watermelonIdoAmount.toString(), nonce, startIdoTs.toString(), endDepositsTs.toString(), endIdoTs.toString(), withdrawTs.toString());
@@ -62,6 +61,7 @@ async function initPool(
         poolAccount: poolAccount.publicKey,
         poolSigner,
         distributionAuthority,
+        payer: provider.wallet.publicKey,
         creatorWatermelon,
         redeemableMint,
         usdcMint,
@@ -143,50 +143,50 @@ async function bid(poolAccount, userUsdc, bidAmount, userRedeemable) {
 }
 
 async function createMultisigTxWithdrawUsdc(poolAccount, amount, receiver) {
-  console.log('multisig program id:', MULTISIG_PROGRAM_ID);
+  // console.log('multisig program id:', MULTISIG_PROGRAM_ID);
   
-  const multisigProgram = new anchor.Program(
-    JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
-    new anchor.PublicKey(MULTISIG_PROGRAM_ID),
-    new anchor.Provider(provider.connection, provider.wallet, Provider.defaultOptions())
-  );
+  // const multisigProgram = new anchor.Program(
+  //   JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
+  //   new anchor.PublicKey(MULTISIG_PROGRAM_ID),
+  //   new anchor.Provider(provider.connection, provider.wallet, Provider.defaultOptions())
+  // );
   
-  const pool = await program.account.poolAccount.fetch(poolAccount);
-  const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
-  const ix = program.instruction.withdrawPoolUsdc(new anchor.BN(amount), {
-    accounts: {
-      poolAccount: poolAccount,
-      poolSigner: poolUsdc.owner, //PDA
-      poolUsdc: pool.poolUsdc,
-      distributionAuthority: pool.distributionAuthority,
-      creatorUsdc: receiver,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-    },
-  })
-  const txSize = 360;//~= 100 + 34*accounts + instruction_data_len
-  const transaction = new web3.Account();
-  const txid = await multisigProgram.rpc.createTransaction(
-    ix.programId,
-    ix.keys,
-    ix.data,
-    {
-      accounts: {
-        multisig: new anchor.PublicKey(MULTISIG_ACCOUNT),
-        transaction: transaction.publicKey,
-        proposer: provider.wallet.publicKey,
-        rent: web3.SYSVAR_RENT_PUBKEY
-      },
-      instructions: [
-        await (multisigProgram.account.transaction.createInstruction as any)(
-          transaction,
-          txSize
-        )
-      ],
-      signers: [transaction, provider.wallet]
-    }
-  );
-  console.log('txid:', txid);
+  // const pool = await program.account.poolAccount.fetch(poolAccount);
+  // const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
+  // const ix = program.instruction.withdrawPoolUsdc(new anchor.BN(amount), {
+  //   accounts: {
+  //     poolAccount: poolAccount,
+  //     poolSigner: poolUsdc.owner, //PDA
+  //     poolUsdc: pool.poolUsdc,
+  //     distributionAuthority: pool.distributionAuthority,
+  //     creatorUsdc: receiver,
+  //     tokenProgram: TOKEN_PROGRAM_ID,
+  //     clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+  //   },
+  // })
+  // const txSize = 360;//~= 100 + 34*accounts + instruction_data_len
+  // const transaction = new web3.Account();
+  // const txid = await multisigProgram.rpc.createTransaction(
+  //   ix.programId,
+  //   ix.keys,
+  //   ix.data,
+  //   {
+  //     accounts: {
+  //       multisig: new anchor.PublicKey(MULTISIG_ACCOUNT),
+  //       transaction: transaction.publicKey,
+  //       proposer: provider.wallet.publicKey,
+  //       rent: web3.SYSVAR_RENT_PUBKEY
+  //     },
+  //     instructions: [
+  //       await (multisigProgram.account.transaction.createInstruction as any)(
+  //         transaction,
+  //         txSize
+  //       )
+  //     ],
+  //     signers: [transaction, provider.wallet]
+  //   }
+  // );
+  // console.log('txid:', txid);
 }
 
 async function withdrawUsdc(poolAccount) {
@@ -206,7 +206,7 @@ async function withdrawUsdc(poolAccount) {
     // ))
   }
 
-  const txid = await program.rpc.withdrawPoolUsdc({
+  const txid = await program.rpc.withdrawPoolUsdc(new anchor.BN(poolUsdc.amount.toString()), {
     accounts: {
       poolAccount: poolAccount,
       poolSigner: poolUsdc.owner, //PDA
@@ -273,13 +273,14 @@ const withdraw_ts = {
 
 yargs(hideBin(process.argv))
   .command(
-    'init <usdc_mint> <watermelon_mint> <watermelon_account> <watermelon_amount>',
+    'init <usdc_mint> <watermelon_mint> <watermelon_account> <watermelon_amount> <authority>',
     'initialize IDO pool',
     y => y
       .positional('usdc_mint', usdc_mint)
       .positional('watermelon_mint', watermelon_mint)
       .positional('watermelon_account', { describe: 'the account supplying the token for sale 🍉', type: 'string' })
       .positional('watermelon_amount', { describe: 'the amount of tokens offered in this sale 🍉', type: 'number' })
+      .positional('authority', {describe: 'distributionAuthority', type: 'string'})
       .option('start_time', start_time)
       .option('deposit_duration', deposit_duration)
       .option('cancel_duration', cancel_duration)
@@ -301,7 +302,8 @@ yargs(hideBin(process.argv))
         start,
         endDeposits,
         endIdo,
-        withdrawTs
+        withdrawTs,
+        new anchor.web3.PublicKey(args.authority)
       );
     })
   .command(
@@ -313,7 +315,7 @@ yargs(hideBin(process.argv))
       .positional('usdc_amount', { describe: 'the amount of tokens bid for this sale 💵', type: 'number' })
       .positional('redeemable_account', { describe: 'the account receiving the redeemable pool token', type: 'string' }),
     args => {
-      throw new Error('decimal should be processed');
+      // throw new Error('decimal should be processed');
       bid(
         new anchor.web3.PublicKey(args.pool_account),
         new anchor.web3.PublicKey(args.usdc_account),
@@ -347,6 +349,7 @@ yargs(hideBin(process.argv))
     'withdraw usdc',
     y => y.positional('pool_account', pool_account),
     async args => {
+      console.log('args', args);
       await withdrawUsdc(new anchor.web3.PublicKey(args.pool_account));
     }
   )
