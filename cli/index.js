@@ -7,6 +7,12 @@ const {
   getAssociatedTokenAddress
 } = require('@project-serum/associated-token');
 
+const path = require('path');
+const fs = require('fs');
+
+const MULTISIG_PROGRAM_ID = '';
+const MULTISIG_ACCOUNT = '';
+
 const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
 // Configure the client to use the local cluster.
 anchor.setProvider(provider);
@@ -134,6 +140,53 @@ async function bid(poolAccount, userUsdc, bidAmount, userRedeemable) {
   } else {
     console.log('bid unchanged 💎');
   }
+}
+
+async function createMultisigTxWithdrawUsdc(poolAccount, amount, receiver) {
+  console.log('multisig program id:', MULTISIG_PROGRAM_ID);
+  
+  const multisigProgram = new anchor.Program(
+    JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
+    new anchor.PublicKey(MULTISIG_PROGRAM_ID),
+    new anchor.Provider(provider.connection, provider.wallet, Provider.defaultOptions())
+  );
+  
+  const pool = await program.account.poolAccount.fetch(poolAccount);
+  const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
+  const ix = program.instruction.withdrawPoolUsdc(new anchor.BN(amount), {
+    accounts: {
+      poolAccount: poolAccount,
+      poolSigner: poolUsdc.owner, //PDA
+      poolUsdc: pool.poolUsdc,
+      distributionAuthority: pool.distributionAuthority,
+      creatorUsdc: receiver,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+    },
+  })
+  const txSize = 360;//~= 100 + 34*accounts + instruction_data_len
+  const transaction = new web3.Account();
+  const txid = await multisigProgram.rpc.createTransaction(
+    ix.programId,
+    ix.keys,
+    ix.data,
+    {
+      accounts: {
+        multisig: new anchor.PublicKey(MULTISIG_ACCOUNT),
+        transaction: transaction.publicKey,
+        proposer: provider.wallet.publicKey,
+        rent: web3.SYSVAR_RENT_PUBKEY
+      },
+      instructions: [
+        await (multisigProgram.account.transaction.createInstruction as any)(
+          transaction,
+          txSize
+        )
+      ],
+      signers: [transaction, provider.wallet]
+    }
+  );
+  console.log('txid:', txid);
 }
 
 async function withdrawUsdc(poolAccount) {
@@ -295,6 +348,16 @@ yargs(hideBin(process.argv))
     y => y.positional('pool_account', pool_account),
     async args => {
       await withdrawUsdc(new anchor.web3.PublicKey(args.pool_account));
+    }
+  )
+  .command(
+    'create-multisig-tx-withdraw-usdc',
+    'multisig',
+    y => y.positional('pool_account', pool_account),
+    async args => {
+      console.log('args:', args);
+      console.log('program:', program);
+      createMultisigTxWithdrawUsdc();
     }
   )
   .argv;

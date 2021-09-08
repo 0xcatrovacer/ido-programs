@@ -316,7 +316,8 @@ describe("ido-pool", () => {
   });
 
   it("Withdraws total USDC from pool account", async () => {
-    await program.rpc.withdrawPoolUsdc({
+    const acc = await getTokenAccount(provider, poolUsdc);
+    await program.rpc.withdrawPoolUsdc(new anchor.BN(acc.amount), {
       accounts: {
         poolAccount: poolAccount.publicKey,
         poolSigner,

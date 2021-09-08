@@ -174,7 +174,7 @@ pub mod ido_pool {
     }
 
     #[access_control(ido_over(&ctx.accounts.pool_account, &ctx.accounts.clock))]
-    pub fn withdraw_pool_usdc(ctx: Context<WithdrawPoolUsdc>) -> Result<()> {
+    pub fn withdraw_pool_usdc(ctx: Context<WithdrawPoolUsdc>, amount: u64) -> Result<()> {
         // Transfer total USDC from pool account to creator account.
         let seeds = &[
             ctx.accounts.pool_account.watermelon_mint.as_ref(),
@@ -188,7 +188,7 @@ pub mod ido_pool {
         };
         let cpi_program = ctx.accounts.token_program.clone();
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
-        token::transfer(cpi_ctx, ctx.accounts.pool_usdc.amount)?;
+        token::transfer(cpi_ctx, amount)?;
 
         Ok(())
     }
@@ -210,7 +210,7 @@ pub struct InitializePool<'info> {
     pub pool_watermelon: CpiAccount<'info, TokenAccount>,
     #[account(constraint = pool_usdc.owner == *pool_signer.key)]
     pub pool_usdc: CpiAccount<'info, TokenAccount>,
-    #[account(signer)]
+    #[account()]
     pub distribution_authority: AccountInfo<'info>,
     #[account(mut, constraint = creator_watermelon.owner == *distribution_authority.key)]
     pub creator_watermelon: CpiAccount<'info, TokenAccount>,
