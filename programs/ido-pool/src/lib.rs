@@ -25,6 +25,10 @@ pub mod ido_pool {
         {
             return Err(ErrorCode::SeqTimes.into());
         }
+        if num_ido_tokens == 0 {
+            return Err(ErrorCode::InvalidParam.into());
+        }
+        
 
         let pool_account = &mut ctx.accounts.pool_account;
         pool_account.redeemable_mint = *ctx.accounts.redeemable_mint.to_account_info().key;
@@ -206,11 +210,13 @@ pub struct InitializePool<'info> {
     pub redeemable_mint: CpiAccount<'info, Mint>,
     #[account(constraint = usdc_mint.decimals == redeemable_mint.decimals)]
     pub usdc_mint: CpiAccount<'info, Mint>,
+    #[account(constraint = pool_watermelon.mint == *watermelon_mint.to_account_info().key)]
+    pub watermelon_mint: CpiAccount<'info, Mint>,
     #[account(mut, constraint = pool_watermelon.owner == *pool_signer.key)]
     pub pool_watermelon: CpiAccount<'info, TokenAccount>,
     #[account(constraint = pool_usdc.owner == *pool_signer.key)]
     pub pool_usdc: CpiAccount<'info, TokenAccount>,
-    #[account()]
+    #[account(constraint =  watermelon_mint.mint_authority == COption::Some(*distribution_authority.key))]
     pub distribution_authority: AccountInfo<'info>,
     #[account(signer)]
     pub payer: AccountInfo<'info>,
@@ -362,6 +368,8 @@ pub enum ErrorCode {
     UsdcNotEqRedeem,//308, 0x134
     #[msg("Given nonce is invalid")]
     InvalidNonce,//309, 0x135
+    #[msg("Invalid param")]
+    InvalidParam, //310, 0x136
 }
 
 // Access control modifiers.

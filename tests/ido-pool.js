@@ -109,6 +109,7 @@ describe("ido-pool", () => {
           creatorWatermelon,
           redeemableMint,
           usdcMint,
+          watermelonMint,
           poolWatermelon,
           poolUsdc,
           tokenProgram: TOKEN_PROGRAM_ID,
