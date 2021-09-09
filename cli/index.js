@@ -1,4 +1,5 @@
 const anchor = require("@project-serum/anchor");
+const anchor5 = require("anchor5");
 const serum = require("@project-serum/common");
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers')
@@ -9,9 +10,14 @@ const {
 
 const path = require('path');
 const fs = require('fs');
+const browserBuffer = require('browserBuffer');
 
-const MULTISIG_PROGRAM_ID = '';
-const MULTISIG_ACCOUNT = '';
+const {
+  encode
+} = require('js-base64');
+
+const MULTISIG_PROGRAM_ID = 'A9HAbnCwoD6f2NkZobKFf6buJoN9gUVVvX5PoUnDHS6u';
+const MULTISIG_ACCOUNT = '$TODO'; //test
 
 const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
 // Configure the client to use the local cluster.
@@ -142,51 +148,66 @@ async function bid(poolAccount, userUsdc, bidAmount, userRedeemable) {
   }
 }
 
-async function createMultisigTxWithdrawUsdc(poolAccount, amount, receiver) {
-  // console.log('multisig program id:', MULTISIG_PROGRAM_ID);
-  
-  // const multisigProgram = new anchor.Program(
-  //   JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
-  //   new anchor.PublicKey(MULTISIG_PROGRAM_ID),
-  //   new anchor.Provider(provider.connection, provider.wallet, Provider.defaultOptions())
-  // );
-  
-  // const pool = await program.account.poolAccount.fetch(poolAccount);
-  // const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
-  // const ix = program.instruction.withdrawPoolUsdc(new anchor.BN(amount), {
-  //   accounts: {
-  //     poolAccount: poolAccount,
-  //     poolSigner: poolUsdc.owner, //PDA
-  //     poolUsdc: pool.poolUsdc,
-  //     distributionAuthority: pool.distributionAuthority,
-  //     creatorUsdc: receiver,
-  //     tokenProgram: TOKEN_PROGRAM_ID,
-  //     clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-  //   },
-  // })
-  // const txSize = 360;//~= 100 + 34*accounts + instruction_data_len
-  // const transaction = new web3.Account();
-  // const txid = await multisigProgram.rpc.createTransaction(
-  //   ix.programId,
-  //   ix.keys,
-  //   ix.data,
-  //   {
-  //     accounts: {
-  //       multisig: new anchor.PublicKey(MULTISIG_ACCOUNT),
-  //       transaction: transaction.publicKey,
-  //       proposer: provider.wallet.publicKey,
-  //       rent: web3.SYSVAR_RENT_PUBKEY
-  //     },
-  //     instructions: [
-  //       await (multisigProgram.account.transaction.createInstruction as any)(
-  //         transaction,
-  //         txSize
-  //       )
-  //     ],
-  //     signers: [transaction, provider.wallet]
-  //   }
-  // );
-  // console.log('txid:', txid);
+async function createMultisigTxWithdrawUsdc(poolAccount, amount, receiver, dryRun) {
+  console.log('multisig program id:', MULTISIG_PROGRAM_ID);
+
+  const multisigProgram = new anchor5.Program(
+    JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
+    new anchor5.web3.PublicKey(MULTISIG_PROGRAM_ID),
+    new anchor5.Provider(provider.connection, provider.wallet, anchor5.Provider.defaultOptions())
+  );
+
+  const pool = await program.account.poolAccount.fetch(poolAccount);
+  const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
+  const ix = program.instruction.withdrawPoolUsdc(new anchor.BN(amount), {
+    accounts: {
+      poolAccount: poolAccount,
+      poolSigner: poolUsdc.owner, //PDA
+      poolUsdc: pool.poolUsdc,
+      distributionAuthority: pool.distributionAuthority,
+      creatorUsdc: receiver,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+    },
+  })
+
+  console.log('accounts: pool_account(0) -> pool_signer(1) -> pool_usdc(2) -> distribution_authority(3) -> creator_usdc(4) -> token_program(5) -> clock(6)')
+  for (let i = 0; i < ix.keys.length; i++) {
+    const k = ix.keys[i];
+    console.log(i, k.pubkey.toBase58().padEnd(45, ' '), ' w/s? ', k.isWritable, k.isSigner);
+  }
+  const localTransactionData = encode(browserBuffer.Buffer.from(ix.data).toString());
+  console.log('instructionBase64: ', localTransactionData);
+
+  if (dryRun) {
+    console.log("dry-run");
+    return
+  }
+  const txSize = 360;//~= 100 + 34*accounts + instruction_data_len
+  const transaction = new anchor5.web3.Account();
+  // console.log('[dbg] provider.wallet:', provider.wallet);
+  const txid = await multisigProgram.rpc.createTransaction(
+    ix.programId,
+    ix.keys,
+    ix.data,
+    {
+      accounts: {
+        multisig: new anchor5.web3.PublicKey(MULTISIG_ACCOUNT),
+        transaction: transaction.publicKey,
+        proposer: provider.wallet.publicKey,
+        rent: anchor5.web3.SYSVAR_RENT_PUBKEY
+      },
+      instructions: [
+        await multisigProgram.account.transaction.createInstruction(
+          transaction,
+          txSize
+        )
+      ],
+      signers: [transaction, provider.wallet.payer]
+    }
+  );
+  console.log('transaction', transaction.publicKey.toBase58());
+  console.log('txid:', txid);
 }
 
 async function withdrawUsdc(poolAccount) {
@@ -280,7 +301,7 @@ yargs(hideBin(process.argv))
       .positional('watermelon_mint', watermelon_mint)
       .positional('watermelon_account', { describe: 'the account supplying the token for sale 🍉', type: 'string' })
       .positional('watermelon_amount', { describe: 'the amount of tokens offered in this sale 🍉', type: 'number' })
-      .positional('authority', {describe: 'distributionAuthority', type: 'string'})
+      .positional('authority', { describe: 'distributionAuthority', type: 'string' })
       .option('start_time', start_time)
       .option('deposit_duration', deposit_duration)
       .option('cancel_duration', cancel_duration)
@@ -353,14 +374,22 @@ yargs(hideBin(process.argv))
       await withdrawUsdc(new anchor.web3.PublicKey(args.pool_account));
     }
   )
-  .command(
-    'create-multisig-tx-withdraw-usdc',
+  .command( //node cli/index.js create-multisig-tx-withdraw-usdc <pool_account> <receiver> <amount> --dry-run
+    'create-multisig-tx-withdraw-usdc <pool_account> <receiver> <amount>',
     'multisig',
-    y => y.positional('pool_account', pool_account),
+    y => y.positional('pool_account', pool_account)
+      .positional('receiver', { desc: 'spl token account', type: 'string' })
+      .positional('amount', { desc: 'token amount in minimum unit', type: 'string' })
+      .option('dry-run', { desc: 'dry run', type: 'boolean', default: false }),
     async args => {
       console.log('args:', args);
-      console.log('program:', program);
-      createMultisigTxWithdrawUsdc();
+      // console.log('program:', program);
+      createMultisigTxWithdrawUsdc(
+        new anchor.web3.PublicKey(args.pool_account),
+        new anchor.BN(args.amount),
+        new anchor.web3.PublicKey(args.receiver),
+        args.dryRun
+      );
     }
   )
   .argv;

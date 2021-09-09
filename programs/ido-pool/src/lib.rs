@@ -353,15 +353,15 @@ pub enum ErrorCode {
     #[msg("IDO has ended")]
     EndIdoTime,//304, 0x130
     #[msg("IDO has not finished yet")]
-    IdoNotOver,//304, 0x131
+    IdoNotOver,//305, 0x131
     #[msg("Insufficient USDC")]
-    LowUsdc,//305, 0x132
+    LowUsdc,//306, 0x132
     #[msg("Insufficient redeemable tokens")]
-    LowRedeemable,//306, 0x133
+    LowRedeemable,//307, 0x133
     #[msg("USDC total and redeemable total don't match")]
-    UsdcNotEqRedeem,//307, 0x134
+    UsdcNotEqRedeem,//308, 0x134
     #[msg("Given nonce is invalid")]
-    InvalidNonce,//308, 0x135
+    InvalidNonce,//309, 0x135
 }
 
 // Access control modifiers.
