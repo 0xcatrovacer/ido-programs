@@ -26,6 +26,11 @@
           "isSigner": false
         },
         {
+          "name": "watermelonMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "poolWatermelon",
           "isMut": true,
           "isSigner": false
@@ -38,7 +43,7 @@
         {
           "name": "distributionAuthority",
           "isMut": false,
-          "isSigner": false
+          "isSigner": true
         },
         {
           "name": "payer",
@@ -285,6 +290,11 @@
           "isSigner": true
         },
         {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
           "name": "creatorUsdc",
           "isMut": true,
           "isSigner": false
@@ -412,6 +422,11 @@
       "code": 309,
       "name": "InvalidNonce",
       "msg": "Given nonce is invalid"
+    },
+    {
+      "code": 310,
+      "name": "InvalidParam",
+      "msg": "Invalid param"
     }
   ],
   "metadata": {
