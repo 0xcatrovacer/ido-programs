@@ -17,7 +17,7 @@ const {
 } = require('js-base64');
 
 const MULTISIG_PROGRAM_ID = 'A9HAbnCwoD6f2NkZobKFf6buJoN9gUVVvX5PoUnDHS6u';
-const MULTISIG_ACCOUNT = '$TODO'; //test
+const MULTISIG_ACCOUNT = '2xg5VUVr7sPeeuqXdTNghxg2eMqv54JDdLHRjnfigN9p'; //mainnet test
 
 const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
 // Configure the client to use the local cluster.

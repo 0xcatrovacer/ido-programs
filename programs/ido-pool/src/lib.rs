@@ -1,9 +1,12 @@
 //! An IDO pool program implementing the Mango Markets token sale design here:
 //! https://docs.mango.markets/litepaper#token-sale.
 
+use std::str::FromStr;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_option::COption;
 use anchor_spl::token::{self, Burn, Mint, MintTo, TokenAccount, Transfer};
+
+const ALLOWED_DEPLOYER: &str = "3FadrT6JsE5GSrLFUy4qPvA26EMBzAHuG5uvYWcCWVCa";
 
 #[program]
 pub mod ido_pool {
@@ -31,6 +34,10 @@ pub mod ido_pool {
         
 
         let pool_account = &mut ctx.accounts.pool_account;
+        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key {
+            msg!("invalid deployer");
+            return Err(ErrorCode::InvalidParam.into());
+        }
         pool_account.redeemable_mint = *ctx.accounts.redeemable_mint.to_account_info().key;
         pool_account.pool_watermelon = *ctx.accounts.pool_watermelon.to_account_info().key;
         pool_account.watermelon_mint = ctx.accounts.pool_watermelon.mint;
@@ -61,6 +68,9 @@ pub mod ido_pool {
         ctx: Context<ExchangeUsdcForRedeemable>,
         amount: u64,
     ) -> Result<()> {
+        if amount == 0 {
+            return Err(ErrorCode::InvalidParam.into());
+        }
         // While token::transfer will check this, we prefer a verbose err msg.
         if ctx.accounts.user_usdc.amount < amount {
             return Err(ErrorCode::LowUsdc.into());
@@ -99,6 +109,9 @@ pub mod ido_pool {
         ctx: Context<ExchangeRedeemableForUsdc>,
         amount: u64,
     ) -> Result<()> {
+        if amount == 0 {
+            return Err(ErrorCode::InvalidParam.into());
+        }
         // While token::burn will check this, we prefer a verbose err msg.
         if ctx.accounts.user_redeemable.amount < amount {
             return Err(ErrorCode::LowRedeemable.into());
@@ -137,6 +150,9 @@ pub mod ido_pool {
         ctx: Context<ExchangeRedeemableForWatermelon>,
         amount: u64,
     ) -> Result<()> {
+        if amount == 0 {
+            return Err(ErrorCode::InvalidParam.into());
+        }
         // While token::burn will check this, we prefer a verbose err msg.
         if ctx.accounts.user_redeemable.amount < amount {
             return Err(ErrorCode::LowRedeemable.into());
@@ -179,6 +195,10 @@ pub mod ido_pool {
 
     #[access_control(ido_over(&ctx.accounts.pool_account, &ctx.accounts.clock))]
     pub fn withdraw_pool_usdc(ctx: Context<WithdrawPoolUsdc>, amount: u64) -> Result<()> {
+        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key {
+            msg!("invalid deployer");
+            return Err(ErrorCode::InvalidParam.into());
+        }
         // Transfer total USDC from pool account to creator account.
         let seeds = &[
             ctx.accounts.pool_account.watermelon_mint.as_ref(),
@@ -216,7 +236,7 @@ pub struct InitializePool<'info> {
     pub pool_watermelon: CpiAccount<'info, TokenAccount>,
     #[account(constraint = pool_usdc.owner == *pool_signer.key)]
     pub pool_usdc: CpiAccount<'info, TokenAccount>,
-    #[account(constraint =  watermelon_mint.mint_authority == COption::Some(*distribution_authority.key))]
+    #[account(signer, constraint =  watermelon_mint.mint_authority == COption::Some(*distribution_authority.key))]
     pub distribution_authority: AccountInfo<'info>,
     #[account(signer)]
     pub payer: AccountInfo<'info>,
@@ -324,6 +344,8 @@ pub struct WithdrawPoolUsdc<'info> {
     pub pool_usdc: CpiAccount<'info, TokenAccount>,
     #[account(signer)]
     pub distribution_authority: AccountInfo<'info>,
+    #[account(signer)]
+    pub payer: AccountInfo<'info>,
     #[account(mut)]
     pub creator_usdc: CpiAccount<'info, TokenAccount>,
     #[account(constraint = token_program.key == &token::ID)]
