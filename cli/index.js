@@ -53,6 +53,7 @@ async function createMultisigTxInitPool(
   poolSigner = _poolSigner;
 
   if (dryRun) {
+    console.log('_poolSigner: ', _poolSigner.toBase58());
     console.log('num_ido_tokens: ',  watermelonIdoAmount.toString());
     const [startIdoT, endDepositsT, endIdoT, withdrawT] = [
       new Date(startIdoTs.toNumber() * 1000),
