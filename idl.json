@@ -99,6 +99,44 @@
       ]
     },
     {
+      "name": "modifyIdoTime",
+      "accounts": [
+        {
+          "name": "poolAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "distributionAuthority",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": [
+        {
+          "name": "startIdoTs",
+          "type": "i64"
+        },
+        {
+          "name": "endDepositsTs",
+          "type": "i64"
+        },
+        {
+          "name": "endIdoTs",
+          "type": "i64"
+        },
+        {
+          "name": "withdrawMelonTs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
       "name": "exchangeUsdcForRedeemable",
       "accounts": [
         {

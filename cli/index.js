@@ -18,8 +18,13 @@ const {
 
 const MULTISIG_PROGRAM_ID = 'A9HAbnCwoD6f2NkZobKFf6buJoN9gUVVvX5PoUnDHS6u';
 
+// mainnet production multisig
 const MULTISIG_ACCOUNT = 'GZXtZrRTaazATgJpWKReqUEYE6L2CSQRHkFnXQDPA2vD'; //mainnet
 const MULTISIG_AUTHORITY = '5jwBGfXVpcEY9Hqmw2hCu77NMnoMeVKzgKCChf82d1Te';
+
+// mainnet test multisig
+// const MULTISIG_ACCOUNT = '2xg5VUVr7sPeeuqXdTNghxg2eMqv54JDdLHRjnfigN9p'; //mainnet
+// const MULTISIG_AUTHORITY = 'EkBHKeUfLdJ26oyLSAbKVxzGCRSM4oAmV9GYumS7r7gS'; //
 
 const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
 // Configure the client to use the local cluster.
@@ -511,7 +516,7 @@ yargs(hideBin(process.argv))
       );
     })
   .command(
-    'multisig-modify-pool-time <pol_account> <start_ido> <end_deposits> <end_ido> <withdraw_melon>',
+    'multisig-modify-pool-time <pool_account> <start_ido> <end_deposits> <end_ido> <withdraw_melon>',
     'create multisig tx to modify pool time',
     y => y
       .positional('pool_account', pool_account)
