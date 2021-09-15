@@ -326,6 +326,7 @@ describe("ido-pool", () => {
         distributionAuthority: provider.wallet.publicKey,
         creatorUsdc,
         poolUsdc,
+        payer: provider.wallet.publicKey,
         tokenProgram: TOKEN_PROGRAM_ID,
         clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       },
@@ -336,4 +337,16 @@ describe("ido-pool", () => {
     creatorUsdcAccount = await getTokenAccount(provider, creatorUsdc);
     assert.ok(creatorUsdcAccount.amount.eq(totalPoolUsdc));
   });
+
+  it("Modify ido time", async () => {
+    await program.rpc.modifyIdoTime(new anchor.BN(1), new anchor.BN(2), new anchor.BN(3), new anchor.BN(4), {
+      accounts: {
+        poolAccount: poolAccount.publicKey,
+        distributionAuthority: provider.wallet.publicKey,
+        payer: provider.wallet.publicKey,
+      }
+    });
+    const pool = await program.account.poolAccount.fetch(poolAccount.publicKey);
+    assert.equal(pool.startIdoTs.toString(), '1');
+  })
 });

@@ -25,6 +25,12 @@ const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
 // Configure the client to use the local cluster.
 anchor.setProvider(provider);
 
+const multisigProgram = new anchor5.Program(
+  JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
+  new anchor5.web3.PublicKey(MULTISIG_PROGRAM_ID),
+  new anchor5.Provider(provider.connection, provider.wallet, anchor5.Provider.defaultOptions())
+);
+
 const program = anchor.workspace.IdoPool;
 
 // TODO: remove this constant once @project-serum/serum uses the same version
@@ -33,17 +39,68 @@ const TOKEN_PROGRAM_ID = new anchor.web3.PublicKey(
   TokenInstructions.TOKEN_PROGRAM_ID.toString()
 );
 
+async function createMultisigTxModifyPool(poolAccount, startIdoTs, endDepositsTs, endIdoTs, withdrawTs, dryRun) {
+  console.log('multisig program id:', MULTISIG_PROGRAM_ID);
+  const ix = program.instruction.modifyIdoTime(
+    startIdoTs,
+    endDepositsTs,
+    endIdoTs,
+    withdrawTs,
+    {
+      accounts: {
+        poolAccount: poolAccount,
+        distributionAuthority: new anchor.web3.PublicKey(MULTISIG_AUTHORITY),
+        payer: provider.wallet.publicKey,
+      },
+    }
+  );
+  if (dryRun) {
+    const [startIdoT, endDepositsT, endIdoT, withdrawT] = [
+      new Date(startIdoTs.toNumber() * 1000),
+      new Date(endDepositsTs.toNumber() * 1000),
+      new Date(endIdoTs.toNumber() * 1000),
+      new Date(withdrawTs.toNumber() * 1000),
+    ];
+    console.log("   startIdoTs", startIdoTs.toString(), startIdoT, 'local', startIdoT.toLocaleString());
+    console.log("endDepositsTs", endDepositsTs.toString(), endDepositsT, 'local', endDepositsT.toLocaleString());
+    console.log("     endIdoTs", endIdoTs.toString(), endIdoT, 'local', endIdoT.toLocaleString());
+    console.log("   withdrawTs", withdrawTs.toString(), withdrawT, 'local', withdrawT.toLocaleString());
+    console.log('instructionBase64: ', encode(browserBuffer.Buffer.from(ix.data).toString()));
+    console.log('dry run');
+    return
+  }
+
+  const txSize = 250;//~= 100 + 34*accounts + instruction_data_len
+  const transaction = new anchor5.web3.Account();
+  const txid = await multisigProgram.rpc.createTransaction(
+    ix.programId,
+    ix.keys,
+    ix.data,
+    {
+      accounts: {
+        multisig: new anchor5.web3.PublicKey(MULTISIG_ACCOUNT),
+        transaction: transaction.publicKey,
+        proposer: provider.wallet.publicKey,
+        rent: anchor5.web3.SYSVAR_RENT_PUBKEY
+      },
+      instructions: [
+        await multisigProgram.account.transaction.createInstruction(
+          transaction,
+          txSize
+        )
+      ],
+      signers: [transaction, provider.wallet.payer]
+    }
+  );
+  console.log('transaction', transaction.publicKey.toBase58());
+  console.log('txid:', txid);
+}
+
 async function createMultisigTxInitPool(
   usdcMint, watermelonMint, creatorWatermelon, watermelonIdoAmount,
   startIdoTs, endDepositsTs, endIdoTs, withdrawTs, dryRun) {
 
   console.log('multisig program id:', MULTISIG_PROGRAM_ID);
-
-  const multisigProgram = new anchor5.Program(
-    JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
-    new anchor5.web3.PublicKey(MULTISIG_PROGRAM_ID),
-    new anchor5.Provider(provider.connection, provider.wallet, anchor5.Provider.defaultOptions())
-  );
 
   // We use the watermelon mint address as the seed, could use something else though.
   const [_poolSigner, nonce] = await anchor.web3.PublicKey.findProgramAddress(
@@ -54,7 +111,7 @@ async function createMultisigTxInitPool(
 
   if (dryRun) {
     console.log('_poolSigner: ', _poolSigner.toBase58());
-    console.log('num_ido_tokens: ',  watermelonIdoAmount.toString());
+    console.log('num_ido_tokens: ', watermelonIdoAmount.toString());
     const [startIdoT, endDepositsT, endIdoT, withdrawT] = [
       new Date(startIdoTs.toNumber() * 1000),
       new Date(endDepositsTs.toNumber() * 1000),
@@ -282,12 +339,6 @@ async function bid(poolAccount, userUsdc, bidAmount, userRedeemable) {
 async function createMultisigTxWithdrawUsdc(poolAccount, amount, receiver, dryRun) {
   console.log('multisig program id:', MULTISIG_PROGRAM_ID);
 
-  const multisigProgram = new anchor5.Program(
-    JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
-    new anchor5.web3.PublicKey(MULTISIG_PROGRAM_ID),
-    new anchor5.Provider(provider.connection, provider.wallet, anchor5.Provider.defaultOptions())
-  );
-
   const pool = await program.account.poolAccount.fetch(poolAccount);
   const poolUsdc = await serum.getTokenAccount(provider, pool.poolUsdc);
   const ix = program.instruction.withdrawPoolUsdc(new anchor.BN(amount), {
@@ -459,6 +510,28 @@ yargs(hideBin(process.argv))
         new anchor.web3.PublicKey(args.authority)
       );
     })
+  .command(
+    'multisig-modify-pool-time <pol_account> <start_ido> <end_deposits> <end_ido> <withdraw_melon>',
+    'create multisig tx to modify pool time',
+    y => y
+      .positional('pool_account', pool_account)
+      .positional('start_ido', { type: 'number' })
+      .positional('end_deposits', { type: 'number' })
+      .positional('end_ido', { type: 'number' })
+      .positional('withdraw_melon', { type: 'number' })
+      .option('dry-run', { desc: 'dry run', type: 'boolean', default: false }),
+    async args => {
+      console.log('args', args);
+      createMultisigTxModifyPool(
+        new anchor.web3.PublicKey(args.pool_account),
+        new anchor.BN(args.start_ido),
+        new anchor.BN(args.end_deposits),
+        new anchor.BN(args.end_ido),
+        new anchor.BN(args.withdraw_melon),
+        args.dryRun
+      );
+    }
+  )
   .command(
     'multisig-init <usdc_mint> <watermelon_mint> <watermelon_account> <watermelon_amount>',
     'initialize IDO pool',

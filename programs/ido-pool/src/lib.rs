@@ -1,10 +1,10 @@
 //! An IDO pool program implementing the Mango Markets token sale design here:
 //! https://docs.mango.markets/litepaper#token-sale.
 
-use std::str::FromStr;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program_option::COption;
 use anchor_spl::token::{self, Burn, Mint, MintTo, TokenAccount, Transfer};
+use std::str::FromStr;
 
 const ALLOWED_DEPLOYER: &str = "3FadrT6JsE5GSrLFUy4qPvA26EMBzAHuG5uvYWcCWVCa";
 
@@ -31,11 +31,10 @@ pub mod ido_pool {
         if num_ido_tokens == 0 {
             return Err(ErrorCode::InvalidParam.into());
         }
-        
 
         let pool_account = &mut ctx.accounts.pool_account;
-        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key {
-            msg!("invalid deployer");
+        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key
+        {
             return Err(ErrorCode::InvalidParam.into());
         }
         pool_account.redeemable_mint = *ctx.accounts.redeemable_mint.to_account_info().key;
@@ -60,6 +59,31 @@ pub mod ido_pool {
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
         token::transfer(cpi_ctx, num_ido_tokens)?;
 
+        Ok(())
+    }
+
+    pub fn modify_ido_time(
+        ctx: Context<ModifyIdoTime>,
+        start_ido_ts: i64,
+        end_deposits_ts: i64,
+        end_ido_ts: i64,
+        withdraw_melon_ts: i64,
+    ) -> Result<()> {
+        if !(start_ido_ts < end_deposits_ts
+            && end_deposits_ts < end_ido_ts
+            && end_ido_ts < withdraw_melon_ts)
+        {
+            return Err(ErrorCode::SeqTimes.into());
+        }
+        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key
+        {
+            return Err(ErrorCode::InvalidParam.into());
+        }
+        let pool_account = &mut ctx.accounts.pool_account;
+        pool_account.start_ido_ts = start_ido_ts;
+        pool_account.end_deposits_ts = end_deposits_ts;
+        pool_account.end_ido_ts = end_ido_ts;
+        pool_account.withdraw_melon_ts = withdraw_melon_ts;
         Ok(())
     }
 
@@ -195,8 +219,8 @@ pub mod ido_pool {
 
     #[access_control(ido_over(&ctx.accounts.pool_account, &ctx.accounts.clock))]
     pub fn withdraw_pool_usdc(ctx: Context<WithdrawPoolUsdc>, amount: u64) -> Result<()> {
-        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key {
-            msg!("invalid deployer");
+        if Pubkey::from_str(ALLOWED_DEPLOYER).unwrap() != *ctx.accounts.payer.to_account_info().key
+        {
             return Err(ErrorCode::InvalidParam.into());
         }
         // Transfer total USDC from pool account to creator account.
@@ -352,6 +376,15 @@ pub struct WithdrawPoolUsdc<'info> {
     pub token_program: AccountInfo<'info>,
     pub clock: Sysvar<'info, Clock>,
 }
+#[derive(Accounts)]
+pub struct ModifyIdoTime<'info> {
+    #[account(mut, has_one = distribution_authority)]
+    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    #[account(signer)]
+    pub distribution_authority: AccountInfo<'info>,
+    #[account(signer)]
+    pub payer: AccountInfo<'info>,
+}
 
 #[account]
 pub struct PoolAccount {
@@ -370,26 +403,26 @@ pub struct PoolAccount {
 
 #[error]
 pub enum ErrorCode {
-    #[msg("IDO must start in the future")] 
-    IdoFuture,//300, 0x12c
+    #[msg("IDO must start in the future")]
+    IdoFuture, //300, 0x12c
     #[msg("IDO times are non-sequential")]
-    SeqTimes,//301, 0x12d
+    SeqTimes, //301, 0x12d
     #[msg("IDO has not started")]
-    StartIdoTime,//302, 0x12e
+    StartIdoTime, //302, 0x12e
     #[msg("Deposits period has ended")]
     EndDepositsTime, //303, 0x12f
     #[msg("IDO has ended")]
-    EndIdoTime,//304, 0x130
+    EndIdoTime, //304, 0x130
     #[msg("IDO has not finished yet")]
-    IdoNotOver,//305, 0x131
+    IdoNotOver, //305, 0x131
     #[msg("Insufficient USDC")]
-    LowUsdc,//306, 0x132
+    LowUsdc, //306, 0x132
     #[msg("Insufficient redeemable tokens")]
-    LowRedeemable,//307, 0x133
+    LowRedeemable, //307, 0x133
     #[msg("USDC total and redeemable total don't match")]
-    UsdcNotEqRedeem,//308, 0x134
+    UsdcNotEqRedeem, //308, 0x134
     #[msg("Given nonce is invalid")]
-    InvalidNonce,//309, 0x135
+    InvalidNonce, //309, 0x135
     #[msg("Invalid param")]
     InvalidParam, //310, 0x136
 }
