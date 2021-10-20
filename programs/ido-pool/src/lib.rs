@@ -6,7 +6,7 @@ use anchor_lang::solana_program::program_option::COption;
 use anchor_spl::token::{self, Burn, Mint, MintTo, TokenAccount, Transfer};
 use std::str::FromStr;
 
-const ALLOWED_DEPLOYER: &str = "3FadrT6JsE5GSrLFUy4qPvA26EMBzAHuG5uvYWcCWVCa";
+const ALLOWED_DEPLOYER: &str = "1ooMcG4CjRycd5WSW7zLbL2fxoVsts8o6JRshTUGUSW";
 
 #[program]
 pub mod ido_pool {

@@ -26,9 +26,40 @@ const MULTISIG_AUTHORITY = '5jwBGfXVpcEY9Hqmw2hCu77NMnoMeVKzgKCChf82d1Te';
 // const MULTISIG_ACCOUNT = '2xg5VUVr7sPeeuqXdTNghxg2eMqv54JDdLHRjnfigN9p'; //mainnet
 // const MULTISIG_AUTHORITY = 'EkBHKeUfLdJ26oyLSAbKVxzGCRSM4oAmV9GYumS7r7gS'; //
 
-const provider = anchor.Provider.local(process.env.CLUSTER_RPC_URL);
+function getKeypair(pk_path) {
+  const pk = JSON.parse(fs.readFileSync(pk_path).toString())
+
+  const pk_uint8 = Uint8Array.from(pk)
+  const signerAccount = anchor.web3.Keypair.fromSecretKey(pk_uint8)
+  return signerAccount
+}
+
+let provider
+function setProvider() {
+  const network = "https://api.mainnet-beta.solana.com";
+  const opts = {
+    preflightCommitment: "processed"
+  }
+  const connection = new anchor.web3.Connection(network, opts.preflightCommitment)
+  const pk_path = 'TBD'
+  const signerAccount = getKeypair(pk_path)
+  const wallet = new anchor.Wallet(signerAccount)
+  provider = new anchor.Provider(
+    connection, wallet, opts.preflightCommitment,
+  )
+  anchor.setProvider(provider)
+}
+setProvider()
 // Configure the client to use the local cluster.
-anchor.setProvider(provider);
+function getProgram(idl_path, program_id, provider) {
+  const idl = JSON.parse(fs.readFileSync(path.resolve(__dirname, idl_path)))
+  const program = new anchor.Program(idl, program_id, provider)
+  return program
+}
+
+const idl_path = '../target/idl/ido_pool.json'
+const program_id = 'TBD'
+const program = getProgram(idl_path, program_id, provider)
 
 const multisigProgram = new anchor5.Program(
   JSON.parse(fs.readFileSync(path.join(__dirname, "multisig.idl.json")).toString()),
@@ -36,7 +67,6 @@ const multisigProgram = new anchor5.Program(
   new anchor5.Provider(provider.connection, provider.wallet, anchor5.Provider.defaultOptions())
 );
 
-const program = anchor.workspace.IdoPool;
 
 // TODO: remove this constant once @project-serum/serum uses the same version
 //       of @solana/web3.js as anchor (or switch packages).
@@ -226,7 +256,7 @@ async function createMultisigTxInitPool(
 
 async function initPool(
   usdcMint, watermelonMint, creatorWatermelon, watermelonIdoAmount,
-  startIdoTs, endDepositsTs, endIdoTs, withdrawTs, distributionAuthority) {
+  startIdoTs, endDepositsTs, endIdoTs, withdrawTs, distributionAuthority, redeemableMintInfo) {
 
   // We use the watermelon mint address as the seed, could use something else though.
   const [_poolSigner, nonce] = await anchor.web3.PublicKey.findProgramAddress(
@@ -263,6 +293,7 @@ async function initPool(
         payer: provider.wallet.publicKey,
         creatorWatermelon,
         redeemableMint,
+        watermelonMint,
         usdcMint,
         poolWatermelon,
         poolUsdc,
@@ -277,7 +308,7 @@ async function initPool(
     }
   );
 
-  console.log(`🏦 IDO pool initialized with ${(watermelonIdoAmount.toNumber() / 1000000).toFixed(2)} tokens`);
+  console.log(`🏦 IDO pool initialized with ${(watermelonIdoAmount.toNumber() / ((10 ** redeemableMintInfo.decimals))).toFixed(2)} tokens`);
   console.log(`Pool Account: ${poolAccount.publicKey.toBase58()}`);
   console.log(`Pool Authority: ${distributionAuthority.toBase58()}`);
   console.log(`Redeem Mint: ${redeemableMint.toBase58()}`);
@@ -512,7 +543,8 @@ yargs(hideBin(process.argv))
         endDeposits,
         endIdo,
         withdrawTs,
-        new anchor.web3.PublicKey(args.authority)
+        new anchor.web3.PublicKey(args.authority),
+        mintInfo
       );
     })
   .command(
