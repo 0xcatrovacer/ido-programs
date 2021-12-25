@@ -5,6 +5,7 @@
     "@project-serum/common": "^0.0.1-beta.3",
     "@project-serum/serum": "^0.13.41",
     "@solana/spl-token": "^0.1.6",
+    "@solana/web3.js": "^1.31.0",
     "anchor5": "npm:@project-serum/anchor@0.5.0",
     "browserBuffer": "npm:buffer@^6.0.3",
     "js-base64": "^3.7.0",
