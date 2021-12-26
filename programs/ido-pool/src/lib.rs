@@ -323,7 +323,7 @@ pub struct InitializePool<'info> {
     pub pool_watermelon: CpiAccount<'info, TokenAccount>,
     #[account(constraint = pool_usdc.owner == *pool_signer.key)]
     pub pool_usdc: CpiAccount<'info, TokenAccount>,
-    #[account(signer, constraint =  watermelon_mint.mint_authority == COption::Some(*distribution_authority.key))]
+    #[account(signer)]
     pub distribution_authority: AccountInfo<'info>,
     #[account(signer)]
     pub payer: AccountInfo<'info>,
