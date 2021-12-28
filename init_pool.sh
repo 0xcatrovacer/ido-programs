@@ -9,6 +9,6 @@ IDO_WITHDRAW_TS=1640390100
 USDC_MINT=6Xg9kxbm12y9yVkQmXWD2gHdq7NPjxwTXLYdjxAERySV
 
 echo "NEW MINT: $NEW_MINT - $NEW_ACC"
-spl-token mint $NEW_MINT $IDO_AMOUNT $NEW_ACC
+# spl-token mint $NEW_MINT $IDO_AMOUNT $NEW_ACC
 
 node cli/index.js init $USDC_MINT $NEW_MINT $NEW_ACC $IDO_AMOUNT $AUTHORITY --start_time $IDO_START_TS --deposit_duration $IDO_DEPOSIT_PERIOD_SEC --cancel_duration $IDO_CANCEL_PERIOD_SEC --withdraw_ts $IDO_WITHDRAW_TS
