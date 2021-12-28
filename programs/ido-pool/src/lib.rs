@@ -7,7 +7,7 @@ use anchor_spl::token::{self, Burn, Mint, MintTo, TokenAccount, Transfer};
 use std::str::FromStr;
 
 // Update this with the address you want to be able to deploy pools
-const ALLOWED_DEPLOYER: &str = "B9RmxeRiWWo8TFh1ydAb5wiUh7SrFrbVcjbwKPQuNLsT";
+const ALLOWED_DEPLOYER: &str = "ShadowCZHrd8i6NrHkj2oAhJxBy8cFo3ggwB7NyoC4h";
 
 #[program]
 pub mod ido_pool {

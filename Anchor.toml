@@ -1,6 +1,6 @@
 [provider]
-cluster = "devnet"
-wallet = "~/.config/solana/id.json"
+cluster = "mainnet"
+wallet = "REDACTED"
 
 [scripts]
 test = "mocha -t 20000 tests/ido-pool.js"

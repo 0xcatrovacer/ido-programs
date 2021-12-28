@@ -34,7 +34,7 @@ function getKeypair(pk_path) {
 
 let provider;
 function setProvider() {
-  const network = "https://psytrbhymqlkfrhudd.dev.genesysgo.net:8899";
+  const network = "https://ssc-dao.genesysgo.net";
   const opts = {
     preflightCommitment: "processed",
   };
@@ -42,7 +42,7 @@ function setProvider() {
     network,
     opts.preflightCommitment
   );
-  const pk_path = "/home/tracy/.config/solana/id.json";
+  const pk_path = "REDACTED";
   const signerAccount = getKeypair(pk_path);
   const wallet = new anchor.Wallet(signerAccount);
   provider = new anchor.Provider(connection, wallet, opts.preflightCommitment);
@@ -57,7 +57,7 @@ function getProgram(idl_path, program_id, provider) {
 }
 
 const idl_path = "../target/idl/ido_pool.json";
-const program_id = "31QBCYu5f7LrNdEca2tanQB7hS5orXky6Q9BZmHkszw6";
+const program_id = "BRkhzczJALNLNbaYtLiuo4yQi6i33fQDt3z1wiujyKU4";
 const program = getProgram(idl_path, program_id, provider);
 
 const multisigProgram = new anchor5.Program(
