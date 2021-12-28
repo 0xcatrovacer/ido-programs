@@ -276,7 +276,7 @@ pub mod ido_pool {
         Ok(())
     }
 
-    #[access_control(ido_over(&ctx.accounts.pool_account, &ctx.accounts.clock))]
+    // #[access_control(ido_over(&ctx.accounts.pool_account, &ctx.accounts.clock))]
     pub fn withdraw_pool_watermelon(
         ctx: Context<WithdrawPoolWatermelon>,
         amount: u64,
