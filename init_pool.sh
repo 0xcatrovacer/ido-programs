@@ -1,6 +1,6 @@
-NEW_MINT=$(spl-token create-token --decimals 9 | awk -F"token " '/token /{print $2}')
-NEW_ACC=$(spl-token create-account $NEW_MINT | awk -F"account " '/account /{print $2}')
-AUTHORITY=9urEjHV3Wm4Pv4Da8uuufRoAuLT9FNAm97wHy3qF9pYy
+NEW_MINT=MINT_ADDRESS
+NEW_ACC=MINT_ACCOUNT
+AUTHORITY=B9RmxeRiWWo8TFh1ydAb5wiUh7SrFrbVcjbwKPQuNLsT
 IDO_AMOUNT=30000000
 IDO_START_TS=1640389800
 IDO_DEPOSIT_PERIOD_SEC=300
