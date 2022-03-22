@@ -119,11 +119,6 @@ describe("ido-pool", () => {
                     systemProgram: anchor.web3.SystemProgram.programId,
                 },
                 signers: [poolAccount],
-                instructions: [
-                    await program.account.poolAccount.createInstruction(
-                        poolAccount
-                    ),
-                ],
             }
         );
 

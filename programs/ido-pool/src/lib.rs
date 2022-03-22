@@ -9,7 +9,7 @@ use std::str::FromStr;
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
 // Update this with the address you want to be able to deploy pools
-const ALLOWED_DEPLOYER: &str = "ShadowCZHrd8i6NrHkj2oAhJxBy8cFo3ggwB7NyoC4h";
+const ALLOWED_DEPLOYER: &str = "8DXSNpVJ5xHX7B49kCQVxMgQ2xPALEaZxN1H1sLFEebX";
 
 #[program]
 pub mod ido_pool {
@@ -18,14 +18,14 @@ pub mod ido_pool {
     #[access_control(InitializePool::accounts(&ctx, nonce) future_start_time(&ctx, start_ido_ts))]
     pub fn initialize_pool(
         ctx: Context<InitializePool>,
-        num_ido_tokens: String,
+        num_ido_tokens: u64,
         nonce: u8,
         start_ido_ts: i64,
         end_deposits_ts: i64,
         end_ido_ts: i64,
         withdraw_melon_ts: i64,
     ) -> Result<()> {
-        let num_ido_tokens_u64 = num_ido_tokens.parse::<u64>().unwrap();
+        // let num_ido_tokens_u64 = num_ido_tokens.parse::<u64>().unwrap();
 
         // msg!("Number of IDO Tokens {:?}", num_ido_tokens_u64);
         if !(start_ido_ts < end_deposits_ts
@@ -34,7 +34,7 @@ pub mod ido_pool {
         {
             return Err(ErrorCode::SeqTimes.into());
         }
-        if num_ido_tokens_u64 == 0 {
+        if num_ido_tokens == 0 {
             return Err(ErrorCode::InvalidParam.into());
         }
 
@@ -49,7 +49,7 @@ pub mod ido_pool {
         pool_account.pool_usdc = *ctx.accounts.pool_usdc.to_account_info().key;
         pool_account.distribution_authority = *ctx.accounts.distribution_authority.key;
         pool_account.nonce = nonce;
-        pool_account.num_ido_tokens = num_ido_tokens_u64;
+        pool_account.num_ido_tokens = num_ido_tokens;
         pool_account.start_ido_ts = start_ido_ts;
         pool_account.end_deposits_ts = end_deposits_ts;
         pool_account.end_ido_ts = end_ido_ts;
@@ -63,7 +63,7 @@ pub mod ido_pool {
         };
         let cpi_program = ctx.accounts.token_program.clone();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-        token::transfer(cpi_ctx, num_ido_tokens_u64)?;
+        token::transfer(cpi_ctx, num_ido_tokens)?;
 
         Ok(())
     }
@@ -309,28 +309,28 @@ pub mod ido_pool {
 
 #[derive(Accounts)]
 pub struct InitializePool<'info> {
-    #[account(init, payer = payer, space = 8 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8)]
+    #[account(init, payer = payer, space = 8 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8 + 8)]
     pub pool_account: Box<Account<'info, PoolAccount>>,
     pub pool_signer: AccountInfo<'info>,
     #[account(
         constraint = redeemable_mint.mint_authority == COption::Some(*pool_signer.key),
         constraint = redeemable_mint.supply == 0
     )]
-    pub redeemable_mint: Account<'info, Mint>,
+    pub redeemable_mint: Box<Account<'info, Mint>>,
     #[account(constraint = usdc_mint.decimals == redeemable_mint.decimals)]
-    pub usdc_mint: Account<'info, Mint>,
+    pub usdc_mint: Box<Account<'info, Mint>>,
     #[account(constraint = pool_watermelon.mint == *watermelon_mint.to_account_info().key)]
-    pub watermelon_mint: Account<'info, Mint>,
+    pub watermelon_mint: Box<Account<'info, Mint>>,
     #[account(mut, constraint = pool_watermelon.owner == *pool_signer.key)]
-    pub pool_watermelon: Account<'info, TokenAccount>,
+    pub pool_watermelon: Box<Account<'info, TokenAccount>>,
     #[account(constraint = pool_usdc.owner == *pool_signer.key)]
-    pub pool_usdc: Account<'info, TokenAccount>,
+    pub pool_usdc: Box<Account<'info, TokenAccount>>,
     #[account(signer)]
     pub distribution_authority: AccountInfo<'info>,
     #[account(signer)]
     pub payer: AccountInfo<'info>,
     #[account(mut)]
-    pub creator_watermelon: Account<'info, TokenAccount>,
+    pub creator_watermelon: Box<Account<'info, TokenAccount>>,
     #[account(constraint = token_program.key == &token::ID)]
     pub token_program: AccountInfo<'info>,
     pub rent: Sysvar<'info, Rent>,
