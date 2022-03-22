@@ -310,7 +310,7 @@ pub mod ido_pool {
 #[derive(Accounts)]
 pub struct InitializePool<'info> {
     #[account(init, payer = payer, space = 8 + 32 + 32 + 32 + 32 + 32 + 1 + 8 + 8 + 8 + 8)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Box<Account<'info, PoolAccount>>,
     pub pool_signer: AccountInfo<'info>,
     #[account(
         constraint = redeemable_mint.mint_authority == COption::Some(*pool_signer.key),
@@ -355,7 +355,7 @@ impl<'info> InitializePool<'info> {
 #[derive(Accounts)]
 pub struct ExchangeUsdcForRedeemable<'info> {
     #[account(has_one = redeemable_mint, has_one = pool_usdc)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Account<'info, PoolAccount>,
     #[account(seeds = [pool_account.watermelon_mint.as_ref()], bump = pool_account.nonce)]
     pool_signer: AccountInfo<'info>,
     #[account(
@@ -379,7 +379,7 @@ pub struct ExchangeUsdcForRedeemable<'info> {
 #[derive(Accounts)]
 pub struct ExchangeRedeemableForUsdc<'info> {
     #[account(has_one = redeemable_mint, has_one = pool_usdc)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Account<'info, PoolAccount>,
     #[account(seeds = [pool_account.watermelon_mint.as_ref()], bump = pool_account.nonce)]
     pool_signer: AccountInfo<'info>,
     #[account(
@@ -403,7 +403,7 @@ pub struct ExchangeRedeemableForUsdc<'info> {
 #[derive(Accounts)]
 pub struct ExchangeRedeemableForWatermelon<'info> {
     #[account(has_one = redeemable_mint, has_one = pool_watermelon)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Account<'info, PoolAccount>,
     #[account(seeds = [pool_account.watermelon_mint.as_ref()], bump = pool_account.nonce)]
     pool_signer: AccountInfo<'info>,
     #[account(
@@ -427,7 +427,7 @@ pub struct ExchangeRedeemableForWatermelon<'info> {
 #[derive(Accounts)]
 pub struct WithdrawPoolUsdc<'info> {
     #[account(has_one = pool_usdc, has_one = distribution_authority)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Account<'info, PoolAccount>,
     #[account(seeds = [pool_account.watermelon_mint.as_ref()], bump = pool_account.nonce)]
     pub pool_signer: AccountInfo<'info>,
     #[account(mut, constraint = pool_usdc.owner == *pool_signer.key)]
@@ -446,7 +446,7 @@ pub struct WithdrawPoolUsdc<'info> {
 #[derive(Accounts)]
 pub struct WithdrawPoolWatermelon<'info> {
     #[account(has_one = pool_watermelon, has_one = distribution_authority)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Account<'info, PoolAccount>,
     #[account(seeds = [pool_account.watermelon_mint.as_ref()], bump = pool_account.nonce)]
     pub pool_signer: AccountInfo<'info>,
     #[account(mut, constraint = pool_watermelon.owner == *pool_signer.key)]
@@ -464,7 +464,7 @@ pub struct WithdrawPoolWatermelon<'info> {
 #[derive(Accounts)]
 pub struct ModifyIdoTime<'info> {
     #[account(mut, has_one = distribution_authority)]
-    pub pool_account: ProgramAccount<'info, PoolAccount>,
+    pub pool_account: Account<'info, PoolAccount>,
     #[account(signer)]
     pub distribution_authority: AccountInfo<'info>,
     #[account(signer)]
@@ -548,7 +548,7 @@ fn withdraw_only_phase(ctx: &Context<ExchangeRedeemableForUsdc>) -> Result<()> {
 
 // Asserts the IDO sale period has ended, based on the current timestamp.
 fn ido_over<'info>(
-    pool_account: &ProgramAccount<'info, PoolAccount>,
+    pool_account: &Account<'info, PoolAccount>,
     clock: &Sysvar<'info, Clock>,
 ) -> Result<()> {
     if !(pool_account.withdraw_melon_ts < clock.unix_timestamp) {
