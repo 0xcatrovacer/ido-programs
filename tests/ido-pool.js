@@ -236,27 +236,27 @@ describe("ido-pool", () => {
 
     const firstWithdrawal = new anchor.BN(2_000_000);
 
-    it("Exchanges user Redeemable tokens for USDC", async () => {
-        await program.rpc.exchangeRedeemableForUsdc(firstWithdrawal, {
-            accounts: {
-                poolAccount: poolAccount.publicKey,
-                poolSigner,
-                redeemableMint,
-                poolUsdc,
-                userAuthority: provider.wallet.publicKey,
-                userUsdc,
-                userRedeemable,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-            },
-        });
+    // it("Exchanges user Redeemable tokens for USDC", async () => {
+    //     await program.rpc.exchangeRedeemableForUsdc(firstWithdrawal, {
+    //         accounts: {
+    //             poolAccount: poolAccount.publicKey,
+    //             poolSigner,
+    //             redeemableMint,
+    //             poolUsdc,
+    //             userAuthority: provider.wallet.publicKey,
+    //             userUsdc,
+    //             userRedeemable,
+    //             tokenProgram: TOKEN_PROGRAM_ID,
+    //             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+    //         },
+    //     });
 
-        totalPoolUsdc = totalPoolUsdc.sub(firstWithdrawal);
-        poolUsdcAccount = await getTokenAccount(provider, poolUsdc);
-        assert.ok(poolUsdcAccount.amount.eq(totalPoolUsdc));
-        userUsdcAccount = await getTokenAccount(provider, userUsdc);
-        assert.ok(userUsdcAccount.amount.eq(firstWithdrawal));
-    });
+    //     totalPoolUsdc = totalPoolUsdc.sub(firstWithdrawal);
+    //     poolUsdcAccount = await getTokenAccount(provider, poolUsdc);
+    //     assert.ok(poolUsdcAccount.amount.eq(totalPoolUsdc));
+    //     userUsdcAccount = await getTokenAccount(provider, userUsdc);
+    //     assert.ok(userUsdcAccount.amount.eq(firstWithdrawal));
+    // });
 
     it("Exchanges user Redeemable tokens for watermelon", async () => {
         // Wait until the IDO has opened.
@@ -317,6 +317,7 @@ describe("ido-pool", () => {
 
         poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
         assert.ok(poolWatermelonAccount.amount.eq(new anchor.BN(0)));
+        console.log("poolWatermelonAccount", poolWatermelonAccount);
     });
 
     it("Withdraws total USDC from pool account", async () => {
