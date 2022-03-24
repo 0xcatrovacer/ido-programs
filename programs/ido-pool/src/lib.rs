@@ -6,7 +6,7 @@ use anchor_lang::solana_program::program_option::COption;
 use anchor_spl::token::{self, Burn, Mint, MintTo, TokenAccount, Transfer};
 use std::str::FromStr;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("7TZqAhcqsPHoZ7sDAeUpDj5woKDDFMYGuX1bgoBsfGPv");
 
 // Update this with the address you want to be able to deploy pools
 const ALLOWED_DEPLOYER: &str = "8DXSNpVJ5xHX7B49kCQVxMgQ2xPALEaZxN1H1sLFEebX";

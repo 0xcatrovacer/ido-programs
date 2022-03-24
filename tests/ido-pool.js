@@ -317,7 +317,11 @@ describe("ido-pool", () => {
 
         poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
         assert.ok(poolWatermelonAccount.amount.eq(new anchor.BN(0)));
-        console.log("poolWatermelonAccount", poolWatermelonAccount);
+        secondUserWatermelonAccount = await getTokenAccount(
+            provider,
+            secondUserWatermelon
+        );
+        console.log("secondUserWatermelonAccount", secondUserWatermelonAccount);
     });
 
     it("Withdraws total USDC from pool account", async () => {
