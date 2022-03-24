@@ -234,7 +234,7 @@ describe("ido-pool", () => {
         assert.ok(secondUserRedeemableAccount.amount.eq(secondDeposit));
     });
 
-    const firstWithdrawal = new anchor.BN(2_000_000);
+    // const firstWithdrawal = new anchor.BN(2_000_000);
 
     // it("Exchanges user Redeemable tokens for USDC", async () => {
     //     await program.rpc.exchangeRedeemableForUsdc(firstWithdrawal, {
@@ -263,14 +263,14 @@ describe("ido-pool", () => {
         if (Date.now() < withdrawTs.toNumber() * 1000) {
             await sleep(withdrawTs.toNumber() * 1000 - Date.now() + 2000);
         }
-        let firstUserRedeemable = firstDeposit.sub(firstWithdrawal);
+        // let firstUserRedeemable = firstDeposit.sub(firstWithdrawal);
         userWatermelon = await createTokenAccount(
             provider,
             watermelonMint,
             provider.wallet.publicKey
         );
 
-        await program.rpc.exchangeRedeemableForWatermelon(firstUserRedeemable, {
+        await program.rpc.exchangeRedeemableForWatermelon(firstDeposit, {
             accounts: {
                 poolAccount: poolAccount.publicKey,
                 poolSigner,
@@ -285,7 +285,7 @@ describe("ido-pool", () => {
         });
 
         poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
-        let redeemedWatermelon = firstUserRedeemable
+        let redeemedWatermelon = firstDeposit
             .mul(watermelonIdoAmount)
             .div(totalPoolUsdc);
         let remainingWatermelon = watermelonIdoAmount.sub(redeemedWatermelon);
@@ -321,7 +321,6 @@ describe("ido-pool", () => {
             provider,
             secondUserWatermelon
         );
-        console.log("secondUserWatermelonAccount", secondUserWatermelonAccount);
     });
 
     it("Withdraws total USDC from pool account", async () => {
